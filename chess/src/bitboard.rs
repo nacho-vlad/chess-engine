@@ -2,7 +2,6 @@ use std::iter::Iterator;
 use std::ops::Add;
 use std::str::FromStr;
 use std::fmt::Display;
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use crate::ChessError;
 
@@ -24,7 +23,7 @@ pub enum Square {
 impl Square {
     pub fn to_bitboard(self) -> Bitboard {
         let sq = self as u8;
-        Bitboard(1 << (8 * (sq/8) + 7 - (sq%8)))
+        Bitboard(1 << (8 * (sq/8) +  (sq%8)))
     }
 
     pub fn rank(self) -> u8 {
@@ -36,9 +35,10 @@ impl Square {
     }
 
     pub fn ray(self, direction: Direction) -> Ray {
-
+        Ray { square: self as i8, direction}
     }
 }
+
 
 impl FromStr for Square {
     type Err = ChessError;
@@ -53,9 +53,7 @@ impl FromStr for Square {
         let rank = chars.next().unwrap();
 
         if file < 'a' || file > 'h' {
-            return Err(ChessError::ParseSquare(string.to_owned()));
-        }
-
+            return Err(ChessError::ParseSquare(string.to_owned())); } 
         if rank <'1' || rank > '8' {
             return Err(ChessError::ParseSquare(string.to_owned()));
         }

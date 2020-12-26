@@ -1,6 +1,7 @@
 pub mod bitboard;
 pub mod position;
 pub mod pieces;
+pub mod constants;
 
 use thiserror::Error;
 
