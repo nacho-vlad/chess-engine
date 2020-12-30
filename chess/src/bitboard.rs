@@ -92,8 +92,11 @@ pub struct Ray {
 impl Iterator for Ray {
     type Item = Square;
     fn next(&mut self) -> Option<Square> {
+        let last = self.square;
         self.square += self.direction as i8;
-        if self.square < 0 || self.square > 63 {
+        if self.square < 0  || 
+           self.square > 63 || 
+           (last%8 - self.square%8).abs() > 1 {
             return None;
         }
         Some(Square::from(self.square as u8))
