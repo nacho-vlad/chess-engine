@@ -2,14 +2,12 @@ pub mod bitboard;
 pub mod position;
 pub mod pieces;
 pub mod constants;
+pub mod types;
 
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum ChessError {
-    #[error("{0} is not a valid square")]
-    ParseSquare(String),
-}
+
+
 
 
 

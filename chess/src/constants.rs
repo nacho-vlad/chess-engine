@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use crate::bitboard::{Square,Bitboard,Direction};
-use crate::position::{Colored, Color};
+use crate::types::*;
 use strum::IntoEnumIterator;
 use std::collections::HashMap;
 
@@ -9,10 +9,137 @@ lazy_static! {
     pub static ref SLIDE_VERTICAL: HashMap<(Square, Bitboard), (Bitboard, Bitboard)> = generate_slide_vertical();
     pub static ref SLIDE_MAIN_DIAGONAL: HashMap<(Square, Bitboard), (Bitboard, Bitboard)> = generate_slide_main_diagonal();
     pub static ref SLIDE_SECOND_DIAGONAL: HashMap<(Square, Bitboard), (Bitboard, Bitboard)> = generate_slide_second_diagonal();
-    pub static ref KNIGHT_MOVES: [Bitboard; 64] = knight_moves();
-    pub static ref KING_MOVES: [Bitboard; 64] = king_moves();
+    pub static ref KNIGHT_ATTACKS: [Bitboard; 64] = knight_moves();
+    pub static ref KING_ATTACKS: [Bitboard; 64] = king_moves();
     pub static ref PAWN_ATTACKS: Colored<[Bitboard; 64]> = pawn_attacks();
+
+    pub static ref FILES_BETWEEN: [[Bitboard; 8]; 8] = generate_files();
+    pub static ref RANKS_BETWEEN: [[Bitboard; 8]; 8] = generate_ranks();
+    pub static ref MAIN_DIAGS_BETWEEN: [[Bitboard; 15]; 15] = generate_main_diags();
+    pub static ref SECOND_DIAGS_BETWEEN: [[Bitboard; 15]; 15] = generate_second_diags();
 }
+
+fn generate_files() ->  [[Bitboard; 8]; 8] {
+    let mut files = [[Bitboard(0); 8]; 8]; 
+    for i in 0..8 {
+        for j in 0..8 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                files[i][j] = files[i][j] | FILE[k];
+            }
+        }
+    }
+
+    files
+}
+
+fn generate_ranks() ->  [[Bitboard; 8]; 8] {
+    let mut ranks = [[Bitboard(0); 8]; 8]; 
+    for i in 0..8 {
+        for j in 0..8 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                ranks[i][j] = ranks[i][j] | RANK[k];
+            }
+        }
+    }
+
+    ranks
+}
+
+fn generate_main_diags() ->  [[Bitboard; 15]; 15] {
+    let mut main_diags = [[Bitboard(0); 15]; 15]; 
+    for i in 0..15 {
+        for j in 0..15 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                main_diags[i][j] = main_diags[i][j] | MAIN_DIAG[k];
+            }
+        }
+    }
+
+    main_diags
+}
+
+fn generate_second_diags() ->  [[Bitboard; 15]; 15] {
+    let mut second_diags = [[Bitboard(0); 15]; 15]; 
+    for i in 0..15 {
+        for j in 0..15 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                second_diags[i][j] = second_diags[i][j] | SECOND_DIAG[k];
+            }
+        }
+    }
+
+    second_diags
+}
+
+
+pub const SAFE_KING_CASTLE: Colored<Bitboard> = Colored(Bitboard(0x00_00_00_00_00_00_00_70),
+                                                        Bitboard(0x70_00_00_00_00_00_00_00));
+pub const SAFE_QUEEN_CASTLE: Colored<Bitboard> = Colored(Bitboard(0x00_00_00_00_00_00_00_1C),
+                                                        Bitboard(0x1C_00_00_00_00_00_00_00));
+pub const FREE_KING_CASTLE: Colored<Bitboard> = Colored(Bitboard(0x00_00_00_00_00_00_00_60),
+                                                        Bitboard(0x60_00_00_00_00_00_00_00));
+pub const FREE_QUEEN_CASTLE: Colored<Bitboard> = Colored(Bitboard(0x00_00_00_00_00_00_00_0E),
+                                                        Bitboard(0x0E_00_00_00_00_00_00_00));
+
+pub const FILE: [Bitboard; 8] = [
+    Bitboard(0x0101010101010101),
+    Bitboard(0x0202020202020202),
+    Bitboard(0x0404040404040404),
+    Bitboard(0x0808080808080808),
+    Bitboard(0x1010101010101010),
+    Bitboard(0x2020202020202020),
+    Bitboard(0x4040404040404040),
+    Bitboard(0x8080808080808080),
+];
+
+pub const RANK: [Bitboard; 8] = [
+    Bitboard(0x00000000000000FF),
+    Bitboard(0x000000000000FF00),
+    Bitboard(0x0000000000FF0000),
+    Bitboard(0x00000000FF000000),
+    Bitboard(0x000000FF00000000),
+    Bitboard(0x0000FF0000000000),
+    Bitboard(0x00FF000000000000),
+    Bitboard(0xFF00000000000000),
+];
+
+pub const MAIN_DIAG: [Bitboard; 15] = [
+    Bitboard(0x0000000000000001),
+    Bitboard(0x0000000000000102),
+    Bitboard(0x0000000000010204),
+    Bitboard(0x0000000001020408),
+    Bitboard(0x0000000102040810),
+    Bitboard(0x0000010204081020),
+    Bitboard(0x0001020408102040),
+    Bitboard(0x0102040810204080),
+    Bitboard(0x0204081020408000),
+    Bitboard(0x0408102040800000),
+    Bitboard(0x0810204080000000),
+    Bitboard(0x1020408000000000),
+    Bitboard(0x2040800000000000),
+    Bitboard(0x4080000000000000),
+    Bitboard(0x8000000000000000),
+];
+
+pub const SECOND_DIAG: [Bitboard; 15] = [
+    Bitboard(0x01_00_00_00_00_00_00_00),
+    Bitboard(0x02_01_00_00_00_00_00_00),
+    Bitboard(0x04_02_01_00_00_00_00_00),
+    Bitboard(0x08_04_02_01_00_00_00_00),
+    Bitboard(0x10_08_04_02_01_00_00_00),
+    Bitboard(0x20_10_08_04_02_01_00_00),
+    Bitboard(0x40_20_10_08_04_02_01_00),
+    Bitboard(0x80_40_20_10_08_04_02_01),
+    Bitboard(0x00_80_40_20_10_08_04_02),
+    Bitboard(0x00_00_80_40_20_10_08_04),
+    Bitboard(0x00_00_00_80_40_20_10_08),
+    Bitboard(0x00_00_00_00_80_40_20_10),
+    Bitboard(0x00_00_00_00_00_80_40_20),
+    Bitboard(0x00_00_00_00_00_00_80_40),
+    Bitboard(0x00_00_00_00_00_00_00_80),
+];
+
+
 
 
 fn generate_slide_horizontal() -> HashMap<(Square, Bitboard), (Bitboard, Bitboard)>{

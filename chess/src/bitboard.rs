@@ -1,9 +1,9 @@
 use std::iter::Iterator;
-use std::ops::Add;
+use std::ops::{Add, Deref, DerefMut, BitOr, BitAnd, Not};
 use std::str::FromStr;
 use std::fmt::Display;
 use strum_macros::EnumIter;
-use crate::ChessError;
+use crate::types::{Color, ChessError};
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Ord, PartialOrd, EnumIter)]
@@ -34,6 +34,14 @@ impl Square {
         (self as u8)%8
     }
 
+    pub fn main_diag(self) -> u8 {
+        self.file() + self.rank() 
+    }
+
+    pub fn second_diag(self) -> u8 {
+        self.file() + (7 - self.rank())
+    }
+
     pub fn ray(self, direction: Direction) -> Ray {
         Ray { square: self as i8, direction}
     }
@@ -58,7 +66,7 @@ impl FromStr for Square {
             return Err(ChessError::ParseSquare(string.to_owned()));
         }
 
-        Ok(Square::from((file as u8 - 'a' as u8) * 8 + rank as u8 - 1 ))
+        Ok(Square::from((rank as u8 - '1' as u8) * 8 + (file as u8 - 'a' as u8) ))
     }
 
 }
@@ -73,6 +81,15 @@ pub enum Direction {
     DownLeft = -9, 
     Left = -1, 
     UpLeft = 7
+}
+
+impl Direction {
+    pub fn pawn(color: Color) -> Direction{
+        match color {
+            Color::White => Direction::Up,
+            Color::Black => Direction::Down,
+        }
+    }
 }
 
 impl Add<Direction> for Square {
@@ -124,7 +141,7 @@ impl Iterator for Squares {
             return None;
         }
         self.bitboard.0 ^= 1 << zeros;
-        Some(Square::from(8* (zeros / 8) + 7 - (zeros % 8)))
+        Some(Square::from(8* (zeros / 8) + (zeros % 8)))
     }
 }
 
@@ -154,6 +171,10 @@ impl Bitboard {
         Bitboard(0)
     }
 
+    pub fn full() -> Bitboard {
+        Bitboard(0xFFFFFFFFFFFFFFFF)
+    }
+
     pub fn squares(self) -> Squares {
         Squares { bitboard: self } 
     }
@@ -175,11 +196,53 @@ impl Bitboard {
     }
 
     pub fn at(self, square: Square) -> bool {
-        (self.0 & square.to_bitboard().0) != 0
+        (self & square.to_bitboard()).0 != 0
     }
 
     pub fn set(&mut self, square: Square) {
         self.0 = self.0 | square.to_bitboard().0
+    }
+    pub fn unset(&mut self, square: Square) {
+        self.0 = self.0 & !square.to_bitboard().0
+    }
+
+}
+
+impl BitOr<Bitboard> for Bitboard {
+    type Output = Bitboard;
+    
+    fn bitor(self, rhs: Bitboard) -> Bitboard {
+        Bitboard(self.0 | rhs.0)
+    }
+}
+
+impl BitAnd<Bitboard> for Bitboard {
+    type Output = Bitboard;
+    
+    fn bitand(self, rhs: Bitboard) -> Bitboard {
+        Bitboard(self.0 & rhs.0)
+    }
+}
+
+impl Not for Bitboard {
+    type Output = Bitboard;
+    fn not(self) -> Bitboard {
+        Bitboard(!self.0)
+    }
+}
+
+impl Deref for Bitboard {
+    type Target = u64;
+    
+    fn deref(&self) -> &u64 {
+        &self.0
+    }
+
+}
+
+impl DerefMut for Bitboard { 
+    fn deref_mut(&mut self) -> &mut u64 {
+        &mut self.0
     }
 
 }

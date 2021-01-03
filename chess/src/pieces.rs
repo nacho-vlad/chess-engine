@@ -1,11 +1,11 @@
 use crate::bitboard::{Bitboard, Square};
-use crate::position::Color;
+use crate::types::{Color, Colored};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use std::ops::{Index,IndexMut};
 
 
-#[derive(Clone, Copy, Debug, EnumIter)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, EnumIter)]
 pub enum Piece {
     Pawn,
     Knight,
@@ -16,6 +16,18 @@ pub enum Piece {
 }
 
 impl Piece {
+    pub fn to_ascii(self) -> char {
+
+        match self {
+            Piece::Pawn => 'p',
+            Piece::Knight => 'N',
+            Piece::Bishop => 'B',
+            Piece::Rook => 'R',
+            Piece::Queen => 'Q',
+            Piece::King => 'K',
+        }
+    }
+
     pub fn to_unicode(self, color: Color) -> char {
         match color {
             Color::White => match self {
@@ -66,15 +78,22 @@ impl Pieces {
         None
     }
 
+    pub fn unset(&mut self, square: Square) {
+        for piece in Piece::iter() {
+            self[piece].unset(square);
+        }
+    }
+
     pub fn occupied(&self) -> Bitboard { 
-        Bitboard(self[Piece::Pawn].0 | self[Piece::Bishop].0 | self[Piece::Knight].0 |
-                 self[Piece::Rook].0 | self[Piece::Queen].0  | self[Piece::King].0 )
+        self[Piece::Pawn] | self[Piece::Bishop] | self[Piece::Knight] |
+        self[Piece::Rook] | self[Piece::Queen]  | self[Piece::King]
     }
 
     pub fn unoccupied(&self) -> Bitboard {
         Bitboard(!self.occupied().0)
     }
 }
+
 
 impl Index<Piece> for Pieces {
     type Output = Bitboard;
@@ -90,3 +109,4 @@ impl IndexMut<Piece> for Pieces {
         &mut self.pieces[piece as usize]
     }
 }
+
