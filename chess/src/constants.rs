@@ -1,6 +1,5 @@
 use lazy_static::lazy_static;
-use crate::bitboard::{Square,Bitboard,Direction};
-use crate::types::*;
+use crate::repr::*;
 use strum::IntoEnumIterator;
 use std::collections::HashMap;
 
@@ -19,58 +18,7 @@ lazy_static! {
     pub static ref SECOND_DIAGS_BETWEEN: [[Bitboard; 15]; 15] = generate_second_diags();
 }
 
-fn generate_files() ->  [[Bitboard; 8]; 8] {
-    let mut files = [[Bitboard(0); 8]; 8]; 
-    for i in 0..8 {
-        for j in 0..8 {
-            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
-                files[i][j] = files[i][j] | FILE[k];
-            }
-        }
-    }
-
-    files
-}
-
-fn generate_ranks() ->  [[Bitboard; 8]; 8] {
-    let mut ranks = [[Bitboard(0); 8]; 8]; 
-    for i in 0..8 {
-        for j in 0..8 {
-            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
-                ranks[i][j] = ranks[i][j] | RANK[k];
-            }
-        }
-    }
-
-    ranks
-}
-
-fn generate_main_diags() ->  [[Bitboard; 15]; 15] {
-    let mut main_diags = [[Bitboard(0); 15]; 15]; 
-    for i in 0..15 {
-        for j in 0..15 {
-            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
-                main_diags[i][j] = main_diags[i][j] | MAIN_DIAG[k];
-            }
-        }
-    }
-
-    main_diags
-}
-
-fn generate_second_diags() ->  [[Bitboard; 15]; 15] {
-    let mut second_diags = [[Bitboard(0); 15]; 15]; 
-    for i in 0..15 {
-        for j in 0..15 {
-            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
-                second_diags[i][j] = second_diags[i][j] | SECOND_DIAG[k];
-            }
-        }
-    }
-
-    second_diags
-}
-
+pub const STARTING_POS_FEN: &'static str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 pub const SAFE_KING_CASTLE: Colored<Bitboard> = Colored(Bitboard(0x00_00_00_00_00_00_00_70),
                                                         Bitboard(0x70_00_00_00_00_00_00_00));
@@ -138,6 +86,61 @@ pub const SECOND_DIAG: [Bitboard; 15] = [
     Bitboard(0x00_00_00_00_00_00_80_40),
     Bitboard(0x00_00_00_00_00_00_00_80),
 ];
+
+
+fn generate_files() ->  [[Bitboard; 8]; 8] {
+    let mut files = [[Bitboard(0); 8]; 8]; 
+    for i in 0..8 {
+        for j in 0..8 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                files[i][j] = files[i][j] | FILE[k];
+            }
+        }
+    }
+
+    files
+}
+
+fn generate_ranks() ->  [[Bitboard; 8]; 8] {
+    let mut ranks = [[Bitboard(0); 8]; 8]; 
+    for i in 0..8 {
+        for j in 0..8 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                ranks[i][j] = ranks[i][j] | RANK[k];
+            }
+        }
+    }
+
+    ranks
+}
+
+fn generate_main_diags() ->  [[Bitboard; 15]; 15] {
+    let mut main_diags = [[Bitboard(0); 15]; 15]; 
+    for i in 0..15 {
+        for j in 0..15 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                main_diags[i][j] = main_diags[i][j] | MAIN_DIAG[k];
+            }
+        }
+    }
+
+    main_diags
+}
+
+fn generate_second_diags() ->  [[Bitboard; 15]; 15] {
+    let mut second_diags = [[Bitboard(0); 15]; 15]; 
+    for i in 0..15 {
+        for j in 0..15 {
+            for k in std::cmp::min(i,j)..std::cmp::max(i,j)+1 {
+                second_diags[i][j] = second_diags[i][j] | SECOND_DIAG[k];
+            }
+        }
+    }
+
+    second_diags
+}
+
+
 
 
 
@@ -366,7 +369,7 @@ fn generate_slide_second_diagonal() -> HashMap<(Square,Bitboard), (Bitboard, Bit
 fn knight_moves() -> [Bitboard; 64] {
     let mut attacks = [Bitboard(0); 64]; 
     
-    for sq in 0..63i8 {
+    for sq in 0..64i8 {
         for dp in [6,15,17,10,-6,-15,-17,-10i8].iter() {
             if sq + dp < 0 || sq + dp > 63 {
                 continue;
@@ -384,7 +387,7 @@ fn knight_moves() -> [Bitboard; 64] {
 fn king_moves() -> [Bitboard; 64] {
     let mut attacks = [Bitboard(0); 64]; 
     
-    for sq in 0..63i8 {
+    for sq in 0..64i8 {
         for dp in [7,8,9,1,-7,-8,-9,-1].iter() {
             if sq + dp < 0 || sq + dp > 63 {
                 continue;
@@ -402,7 +405,7 @@ fn king_moves() -> [Bitboard; 64] {
 fn pawn_attacks() -> Colored<[Bitboard; 64]> {
     let mut attacks = Colored([Bitboard(0);64], [Bitboard(0);64]);
     
-    for sq in 0..63i8 {
+    for sq in 0..64i8 {
         for dp in [7,9, -9, -7].iter() {
             if sq + dp < 0 || sq + dp > 63 {
                 continue;

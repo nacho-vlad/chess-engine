@@ -3,7 +3,8 @@ use std::ops::{Add, Deref, DerefMut, BitOr, BitAnd, Not};
 use std::str::FromStr;
 use std::fmt::Display;
 use strum_macros::EnumIter;
-use crate::types::{Color, ChessError};
+use super::Color;
+use crate::ChessError;
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq, Ord, PartialOrd, EnumIter)]
@@ -68,7 +69,12 @@ impl FromStr for Square {
 
         Ok(Square::from((rank as u8 - '1' as u8) * 8 + (file as u8 - 'a' as u8) ))
     }
+}
 
+impl std::fmt::Display for Square {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", (self.file() + 'a' as u8) as char, self.rank()+1)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]

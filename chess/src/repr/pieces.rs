@@ -1,5 +1,7 @@
-use crate::bitboard::{Bitboard, Square};
-use crate::types::{Color, Colored};
+use crate::repr::{
+    Color,
+    bitboard::{Bitboard, Square}, 
+};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use std::ops::{Index,IndexMut};

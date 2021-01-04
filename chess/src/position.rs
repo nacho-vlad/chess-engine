@@ -1,18 +1,12 @@
-use crate::bitboard::{
-    Bitboard,
-    Square,
-    Direction,
-};
-use crate::pieces::{
-    Piece,
-    Pieces,
-};
-use crate::constants::*;
-use crate::types::*;
 use std::hash::Hash;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+
+use crate::constants::*;
+use crate::repr::*;
+use crate::ChessError;
+
 
 type Board = Colored<Pieces>;
 
@@ -25,13 +19,6 @@ pub struct Position {
     en_passant: Option<Square>,
     half_moves: u16,
 }
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct Chessboard {
-    position: Position,
-    previous: Option<Arc<Chessboard>>
-}
-
 
 
 fn intersects(lhs: Bitboard, rhs: Bitboard) -> bool {
@@ -89,6 +76,24 @@ pub enum LegalMove {
     QueensideCastle
 }
 
+impl std::fmt::Display for LegalMove {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LegalMove::Normal(src, dst, _) => write!(f, "{}{}", src,dst),
+            LegalMove::EnPassant(src, dst) => write!(f, "{}{}", src,dst),
+            LegalMove::Promotion(src,dst,to) => match to {
+                Piece::Queen => write!(f, "{}{}q", src,dst),
+                Piece::Rook => write!(f, "{}{}r", src,dst),
+                Piece::Bishop => write!(f, "{}{}b", src,dst),
+                Piece::Knight => write!(f, "{}{}n", src,dst),
+                _ => panic!("Can't promote to that piece"),
+            }
+            LegalMove::KingsideCastle => write!(f, "O-O"),
+            LegalMove::QueensideCastle => write!(f, "O-O-O"),
+        }
+    }
+}
+
 impl Board {
     pub fn occupied(&self) -> Bitboard {
         self[Color::White].occupied() | self[Color::Black].occupied()
@@ -98,7 +103,7 @@ impl Board {
         self[Color::White].unoccupied() | self[Color::Black].unoccupied()
     }
 
-    pub fn is_check(&self, player: Color) -> bool {
+    pub fn in_check(&self, player: Color) -> bool {
         let opponent = player.other();
         let occupied = self.occupied();
         let mut attacked = Bitboard::empty();
@@ -125,6 +130,11 @@ impl Board {
 }
 
 impl Position {
+
+    pub fn in_check(&self) -> bool {
+        return self.board.in_check(self.turn)
+    }
+
     pub fn legal_moves(&self) -> Vec<LegalMove> {
         let mut legal_moves = Vec::new();
         
@@ -242,7 +252,7 @@ impl Position {
 
         //Opponent king {
         for sq in pieces[opponent][Piece::King].squares() {
-            let attacks = KING_ATTACKS[sq as usize];
+            let attacks = king_attack(sq);
             attacked = attacked | attacks;
         }
         
@@ -250,7 +260,7 @@ impl Position {
 
         //King moves
         for king_sq in king.squares() {
-            let move_sqs = KING_ATTACKS[king_sq as usize];
+            let move_sqs = king_attack(king_sq);
             for dest in (move_sqs & !attacked & !player_occupied).squares() {
                 legal_moves.push(LegalMove::Normal(king_sq,dest, Piece::King));
             }
@@ -403,13 +413,24 @@ impl Position {
                         board[player][Piece::Pawn].unset(pawn);
                         board[player][Piece::Pawn].set(dest);
                         board[opponent][Piece::Pawn].unset(ep + Direction::pawn(opponent));
-                        if !board.is_check(player) {
+                        if !board.in_check(player) {
                             legal_moves.push(LegalMove::EnPassant(pawn,dest));
                         }
                         continue;
                     }
                 }
-                legal_moves.push(LegalMove::Normal(pawn,dest,Piece::Pawn));
+                let promote_rank = match player {
+                    Color::White => 7,
+                    Color::Black => 0,
+                };
+                if dest.rank() == promote_rank { 
+                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Queen));
+                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Rook));
+                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Bishop));
+                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Knight));
+                } else {
+                    legal_moves.push(LegalMove::Normal(pawn,dest,Piece::Pawn));
+                }
             }
         }
 
@@ -430,11 +451,13 @@ impl Position {
         legal_moves
     }
 
-    pub fn apply_move(&self, legal_move: LegalMove) -> Position {
+    pub fn make_move(&self, legal_move: LegalMove) -> Position {
         let mut position = *self;
         let player = position.turn;
         let opponent = player.other();
         position.en_passant = None;
+
+
         match legal_move {
             LegalMove::Normal(src,dst,piece) => {
                 position.board[player][piece].unset(src);
@@ -465,7 +488,7 @@ impl Position {
             LegalMove::Promotion(src,dst,to) => {
                 position.board[player][Piece::Pawn].unset(src);
                 position.board[player][to].set(dst);
-                position.board[opponent].unset(dst + Direction::pawn(opponent)); 
+                position.board[opponent].unset(dst); 
             },
             LegalMove::KingsideCastle => {
                 let (old_king, old_rook, new_king, new_rook) = match player {
@@ -494,15 +517,64 @@ impl Position {
                 position.castling_rights[player].queenside = false;
             },
         }
+        
+        let mut q_r = false;
+        let mut k_r = false;
+        for sq in position.board[opponent][Piece::Rook].squares() {
+            let (queen_rook, king_rook) = match opponent {
+                Color::White => (Square::A1, Square::H1),
+                Color::Black => (Square::A8, Square::H8),
+            };
+            if sq == queen_rook {
+                q_r = true;
+            }
+            if sq == king_rook {
+                k_r = true;
+            }
+            
+        }
+        
+        if !q_r {
+            position.castling_rights[opponent].queenside = false;
+        }
+        if !k_r {
+            position.castling_rights[opponent].kingside = false;
+        }
+
         position.turn = opponent;
         position.half_moves += 1;
         position
     }
 
+    pub fn perft(&self, depth: u32) -> u64 {
+        let moves = self.legal_moves();
+        let mut nodes = 0;
+
+        if depth == 0 {
+            return 1
+        }
+        if depth == 1 {
+            return moves.len() as u64
+        }
+
+        for mv in moves.iter() {
+            let new_nodes = self.make_move(*mv).perft(depth-1);
+            // if depth == 2 {
+            //     println!("{}: {}", mv, new_nodes)
+            // }
+            nodes += new_nodes
+        }
+
+        nodes
+    }
 }
 
 // Input output implementation
 impl Position {
+
+    pub fn starting() -> Position {
+        Position::from_fen(STARTING_POS_FEN).unwrap()
+    }
      
     pub fn from_fen(fen: &str) -> Result<Position, ChessError> {
         let parts: Vec<&str> = fen.split_whitespace().collect();

@@ -1,15 +1,10 @@
-use crate::pieces::Pieces;
-use crate::bitboard::{Bitboard, Square};
-use std::ops::{Index, IndexMut};
-use thiserror::Error;
+pub mod bitboard;
+pub mod pieces;
 
-#[derive(Error, Debug)]
-pub enum ChessError {
-    #[error("{0} is not a valid square")]
-    ParseSquare(String),
-    #[error("{0}")]
-    InvalidFEN(String),
-}
+
+pub use pieces::{Pieces, Piece};
+pub use bitboard::{Bitboard, Square, Direction};
+use std::ops::{Index, IndexMut};
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum Color {
