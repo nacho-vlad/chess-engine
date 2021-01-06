@@ -1,0 +1,18 @@
+[package]
+name = "pychess"
+version = "0.1.0"
+authors = ["Florin-Vlad Sabau <sabauflorin28@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rustchess"
+crate-type = ["cdylib"]
+
+[dependencies]
+chess = { path = "../chess" }
+
+[dependencies.pyo3]
+version = "0.13.0"
+features = ["extension-module"]

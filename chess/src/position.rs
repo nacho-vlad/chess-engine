@@ -1,7 +1,6 @@
 use std::hash::Hash;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use crate::constants::*;
 use crate::repr::*;
@@ -13,11 +12,11 @@ type Board = Colored<Pieces>;
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Position {
-    board: Board, 
-    turn: Color,
-    castling_rights: Colored<CastlingRights>,
-    en_passant: Option<Square>,
-    half_moves: u16,
+    pub board: Board, 
+    pub turn: Color,
+    pub castling_rights: Colored<CastlingRights>,
+    pub en_passant: Option<Square>,
+    pub half_moves: u16,
 }
 
 
@@ -67,32 +66,7 @@ fn pawn_attack(color: Color, square: Square) -> Bitboard {
     PAWN_ATTACKS[color][square as usize]
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum LegalMove {
-    Normal(Square, Square, Piece),
-    EnPassant(Square, Square),
-    Promotion(Square, Square, Piece),
-    KingsideCastle,
-    QueensideCastle
-}
 
-impl std::fmt::Display for LegalMove {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LegalMove::Normal(src, dst, _) => write!(f, "{}{}", src,dst),
-            LegalMove::EnPassant(src, dst) => write!(f, "{}{}", src,dst),
-            LegalMove::Promotion(src,dst,to) => match to {
-                Piece::Queen => write!(f, "{}{}q", src,dst),
-                Piece::Rook => write!(f, "{}{}r", src,dst),
-                Piece::Bishop => write!(f, "{}{}b", src,dst),
-                Piece::Knight => write!(f, "{}{}n", src,dst),
-                _ => panic!("Can't promote to that piece"),
-            }
-            LegalMove::KingsideCastle => write!(f, "O-O"),
-            LegalMove::QueensideCastle => write!(f, "O-O-O"),
-        }
-    }
-}
 
 impl Board {
     pub fn occupied(&self) -> Bitboard {
@@ -127,6 +101,17 @@ impl Board {
         intersects(self[player][Piece::King], attacked)
     }
 
+    pub fn at(&self, square: Square) -> Option<Piece> {
+        let white = self[Color::White].at(square);
+        let black = self[Color::Black].at(square);
+        match (white, black) {
+            (None, None) => None,
+            (Some(piece), None) => Some(piece),
+            (None, Some(piece)) => Some(piece),
+            (Some(_), Some(_)) => panic!("2 pieces on the same square"),
+        }
+    }
+
 }
 
 impl Position {
@@ -135,7 +120,7 @@ impl Position {
         return self.board.in_check(self.turn)
     }
 
-    pub fn legal_moves(&self) -> Vec<LegalMove> {
+    pub fn legal_moves(&self) -> Vec<Move> {
         let mut legal_moves = Vec::new();
         
         let pieces = self.board;
@@ -262,7 +247,7 @@ impl Position {
         for king_sq in king.squares() {
             let move_sqs = king_attack(king_sq);
             for dest in (move_sqs & !attacked & !player_occupied).squares() {
-                legal_moves.push(LegalMove::Normal(king_sq,dest, Piece::King));
+                legal_moves.push(Move::Normal(king_sq,dest, Piece::King));
             }
         }
 
@@ -278,7 +263,7 @@ impl Position {
                 Some(&pin) => jumps & protect_king & !player_occupied & pin,
             };
             for dest in legal_squares.squares() {
-                legal_moves.push(LegalMove::Normal(knight, dest, Piece::Knight));
+                legal_moves.push(Move::Normal(knight, dest, Piece::Knight));
             }
         }
 
@@ -290,7 +275,7 @@ impl Position {
                 Some(&pin) => slides & protect_king & !player_occupied & pin,
             };
             for dest in legal_squares.squares() {
-                legal_moves.push(LegalMove::Normal(bishop, dest, Piece::Bishop));
+                legal_moves.push(Move::Normal(bishop, dest, Piece::Bishop));
             }
         }
 
@@ -302,7 +287,7 @@ impl Position {
                 Some(&pin) => slides & protect_king & !player_occupied & pin,
             };
             for dest in legal_squares.squares() {
-                legal_moves.push(LegalMove::Normal(rook, dest, Piece::Rook));
+                legal_moves.push(Move::Normal(rook, dest, Piece::Rook));
             }
         }
 
@@ -314,7 +299,7 @@ impl Position {
                 Some(&pin) => slides & protect_king & !player_occupied & pin,
             };
             for dest in legal_squares.squares() {
-                legal_moves.push(LegalMove::Normal(queen, dest, Piece::Queen));
+                legal_moves.push(Move::Normal(queen, dest, Piece::Queen));
             }
         }
         
@@ -334,12 +319,12 @@ impl Position {
                     continue;
                 }
                 if dest.rank() == 7 {
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Queen));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Rook));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Knight));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Bishop));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Queen));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Rook));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Knight));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Bishop));
                 } else {
-                    legal_moves.push(LegalMove::Normal(pawn,dest, Piece::Pawn));
+                    legal_moves.push(Move::Normal(pawn,dest, Piece::Pawn));
                 }
             }
 
@@ -352,7 +337,7 @@ impl Position {
                 if !intersects(legal_squares, dest.to_bitboard()) {
                     continue;
                 }
-                legal_moves.push(LegalMove::Normal(pawn,dest, Piece::Pawn));
+                legal_moves.push(Move::Normal(pawn,dest, Piece::Pawn));
             }
             
         } else {
@@ -370,12 +355,12 @@ impl Position {
                     continue;
                 }
                 if dest.rank() == 0 {
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Queen));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Rook));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Knight));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest, Piece::Bishop));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Queen));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Rook));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Knight));
+                    legal_moves.push(Move::Promotion(pawn,dest, Piece::Bishop));
                 } else {
-                    legal_moves.push(LegalMove::Normal(pawn,dest, Piece::Pawn));
+                    legal_moves.push(Move::Normal(pawn,dest, Piece::Pawn));
                 }
             }
 
@@ -388,7 +373,7 @@ impl Position {
                 if !intersects(legal_squares, dest.to_bitboard()) {
                     continue;
                 }
-                legal_moves.push(LegalMove::Normal(pawn,dest, Piece::Pawn));
+                legal_moves.push(Move::Normal(pawn,dest, Piece::Pawn));
             }
 
         }
@@ -414,7 +399,7 @@ impl Position {
                         board[player][Piece::Pawn].set(dest);
                         board[opponent][Piece::Pawn].unset(ep + Direction::pawn(opponent));
                         if !board.in_check(player) {
-                            legal_moves.push(LegalMove::EnPassant(pawn,dest));
+                            legal_moves.push(Move::EnPassant(pawn,dest));
                         }
                         continue;
                     }
@@ -424,12 +409,12 @@ impl Position {
                     Color::Black => 0,
                 };
                 if dest.rank() == promote_rank { 
-                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Queen));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Rook));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Bishop));
-                    legal_moves.push(LegalMove::Promotion(pawn,dest,Piece::Knight));
+                    legal_moves.push(Move::Promotion(pawn,dest,Piece::Queen));
+                    legal_moves.push(Move::Promotion(pawn,dest,Piece::Rook));
+                    legal_moves.push(Move::Promotion(pawn,dest,Piece::Bishop));
+                    legal_moves.push(Move::Promotion(pawn,dest,Piece::Knight));
                 } else {
-                    legal_moves.push(LegalMove::Normal(pawn,dest,Piece::Pawn));
+                    legal_moves.push(Move::Normal(pawn,dest,Piece::Pawn));
                 }
             }
         }
@@ -438,20 +423,20 @@ impl Position {
         if self.castling_rights[player].kingside && 
            !intersects(SAFE_KING_CASTLE[player], attacked) &&
            !intersects(FREE_KING_CASTLE[player], all_occupied) {
-            legal_moves.push(LegalMove::KingsideCastle);
+            legal_moves.push(Move::KingsideCastle);
         }
 
         //Queenside Castle
         if self.castling_rights[player].queenside && 
            !intersects(SAFE_QUEEN_CASTLE[player], attacked) &&
            !intersects(FREE_QUEEN_CASTLE[player], all_occupied) {
-            legal_moves.push(LegalMove::QueensideCastle);
+            legal_moves.push(Move::QueensideCastle);
         }
 
         legal_moves
     }
 
-    pub fn make_move(&self, legal_move: LegalMove) -> Position {
+    pub fn make_move(&self, legal_move: Move) -> Position {
         let mut position = *self;
         let player = position.turn;
         let opponent = player.other();
@@ -459,7 +444,7 @@ impl Position {
 
 
         match legal_move {
-            LegalMove::Normal(src,dst,piece) => {
+            Move::Normal(src,dst,piece) => {
                 position.board[player][piece].unset(src);
                 position.board[player][piece].set(dst);
                 position.board[opponent].unset(dst);
@@ -479,18 +464,18 @@ impl Position {
                     position.en_passant = Some(src + Direction::pawn(player));
                 }
             },
-            LegalMove::EnPassant(src,dst) => {
+            Move::EnPassant(src,dst) => {
                 position.board[player][Piece::Pawn].unset(src);
                 position.board[player][Piece::Pawn].set(dst);
                 position.board[opponent].unset(dst + Direction::pawn(opponent));
 
             },
-            LegalMove::Promotion(src,dst,to) => {
+            Move::Promotion(src,dst,to) => {
                 position.board[player][Piece::Pawn].unset(src);
                 position.board[player][to].set(dst);
                 position.board[opponent].unset(dst); 
             },
-            LegalMove::KingsideCastle => {
+            Move::KingsideCastle => {
                 let (old_king, old_rook, new_king, new_rook) = match player {
                     Color::White => (Square::E1, Square::H1, Square::G1, Square::F1),
                     Color::Black => (Square::E8, Square::H8, Square::G8, Square::F8),
@@ -503,7 +488,7 @@ impl Position {
                 position.castling_rights[player].kingside = false;
                 position.castling_rights[player].queenside = false;
             },
-            LegalMove::QueensideCastle => {
+            Move::QueensideCastle => {
                 let (old_king, old_rook, new_king, new_rook) = match player {
                     Color::White => (Square::E1, Square::A1, Square::C1, Square::D1),
                     Color::Black => (Square::E8, Square::A8, Square::C8, Square::D8),

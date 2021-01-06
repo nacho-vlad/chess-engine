@@ -185,6 +185,10 @@ impl Bitboard {
         Squares { bitboard: self } 
     }
 
+    pub fn count(self) -> u32 {
+        self.0.count_ones()
+    }
+
     pub fn flip_diagonal(self) -> Bitboard {
         let k1: u64 = 0x5500550055005500;
         let k2: u64 = 0x3333000033330000;
