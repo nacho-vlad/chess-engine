@@ -6,7 +6,7 @@ pub use pieces::{Pieces, Piece};
 pub use bitboard::{Bitboard, Square, Direction};
 use std::ops::{Index, IndexMut};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Move {
     Normal(Square, Square, Piece),
     EnPassant(Square, Square),

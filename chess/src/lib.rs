@@ -22,6 +22,10 @@ pub enum ChessError {
     InvalidFEN(String),
     #[error("{0} is not a valid move")]
     ParseMove(String),
+    #[error("{0} is not a legal move")]
+    IllegalMove(Move),
+    #[error("this position has no previous")]
+    NoPreviousPos,
 }
 
 
@@ -69,6 +73,29 @@ impl Chessboard {
 
     pub fn piece_at(&self, square: Square) -> Option<Piece> {
         self.position.board.at(square)
+    }
+
+    pub fn move_is_valid(&self, mov: Move) -> bool {
+        let legal_moves = self.legal_moves();
+
+        legal_moves.contains(&mov)
+    }
+    
+    pub fn make_str_move(&self, mov: &str) -> Result<Chessboard, ChessError> {
+        let mov = self.parse_move(mov)?;
+        match self.move_is_valid(mov) {
+            true =>Ok(self.make_move(mov)),
+            false => Err(ChessError::IllegalMove(mov)),
+        } 
+    }
+
+    pub fn previous(&self) -> Result<Chessboard, ChessError> {
+        match &self.previous {
+            None => Err(ChessError::NoPreviousPos),
+            Some(board) => {
+                Ok((**board).clone())
+            }
+        }
     }
 
     pub fn parse_move(&self, mov: &str) -> Result<Move, ChessError> {
