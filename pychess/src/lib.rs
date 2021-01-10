@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use chess::{Chessboard, ChessError};
+use chess::repr::*;
 
 struct PyChessError(pub ChessError);
 
@@ -37,6 +37,40 @@ impl PyChessboard {
         self.board.position.to_ascii()
     }
 
+    fn turn(&self) -> String {
+        match self.board.position.turn {
+            Color::White => "white".to_owned(),
+            Color::Black => "black".to_owned()
+        }
+    }
+
+    fn at(&self, rank: u8, file: u8) -> Option<char> {
+        let square = Square::from((rank-1)*8 + file-1);
+        
+        Some(match self.board.at(square)? {
+            (Color::White, Piece::Pawn) => 'P',
+            (Color::White, Piece::Bishop) => 'B',
+            (Color::White, Piece::Knight) => 'N',
+            (Color::White, Piece::Queen) => 'Q',
+            (Color::White, Piece::King) => 'K',
+            (Color::White, Piece::Rook) => 'R',
+            (Color::Black, Piece::Pawn) => 'p',
+            (Color::Black, Piece::Bishop) => 'b',
+            (Color::Black, Piece::Knight) => 'n',
+            (Color::Black, Piece::Rook) => 'r',
+            (Color::Black, Piece::Queen) => 'q',
+            (Color::Black, Piece::King) => 'k',
+        })
+    }
+
+    fn game_result(&self) -> Option<String> {
+        let result = self.board.game_result()?;
+        Some(match result {
+            None => "draw".to_string(),
+            Some(Color::White) => "white".to_string(),
+            Some(Color::Black) => "black".to_string(),
+        })
+    }
 
     fn undo(&mut self) -> Result<(), PyChessError> {
         self.board = self.board.previous()?;

@@ -8,6 +8,6 @@ class Human(Player):
         super().__init__()
 
     def get_move(self, moves):
-        return self.ui.get_move(moves)
+        return self.ui.get_move()
         
 

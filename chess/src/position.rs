@@ -101,13 +101,13 @@ impl Board {
         intersects(self[player][Piece::King], attacked)
     }
 
-    pub fn at(&self, square: Square) -> Option<Piece> {
+    pub fn at(&self, square: Square) -> Option<(Color,Piece)> {
         let white = self[Color::White].at(square);
         let black = self[Color::Black].at(square);
         match (white, black) {
             (None, None) => None,
-            (Some(piece), None) => Some(piece),
-            (None, Some(piece)) => Some(piece),
+            (Some(piece), None) => Some((Color::White,piece)),
+            (None, Some(piece)) => Some((Color::Black,piece)),
             (Some(_), Some(_)) => panic!("2 pieces on the same square"),
         }
     }

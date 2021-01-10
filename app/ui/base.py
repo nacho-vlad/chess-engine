@@ -11,4 +11,8 @@ class UI(abc.ABC):
         pass
      
 
+    @abc.abstractmethod
+    def game_over(self,result):
+        pass
+
 

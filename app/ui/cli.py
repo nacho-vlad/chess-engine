@@ -1,7 +1,7 @@
 from ..ui.base import UI
 import subprocess
 
-class TUI(UI):
+class CLI(UI):
 
     def __init__(self):
         super().__init__()
@@ -14,7 +14,15 @@ class TUI(UI):
 
         color = "blue" if len(moves)%2==0 else "pink"
 
-        move = input("Enter a move for " + color + ":")
+        move = input("Enter a move for " + color + ":\n")
         return move
 
+    def game_over(self, result):
+
+        message = {
+                'white': "Blue has won",
+                'black': "Pink has won",
+                'draw': "Draw",
+            }[result]
+        print(message)
 

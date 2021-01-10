@@ -28,11 +28,32 @@ pub enum ChessError {
     NoPreviousPos,
 }
 
+// #[derive(Debug, Copy, Clone)]
+// pub enum GameResult {
+//     WhiteWin,
+//     Draw,
+//     BlackWin
+// }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Chessboard {
     pub position: Position,
     pub previous: Option<Arc<Chessboard>>
+}
+
+pub struct HistoryIterator<'c> {
+    board: Option<&'c Chessboard>,
+}
+
+impl<'c> Iterator for HistoryIterator<'c> {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Position> {
+        let position = self.board?.position;
+        self.board = self.board?.previous.as_ref().map(|p| &**p);
+        Some(position)
+    }
+
 }
 
 ///Struct that represents the chessboard. This is the main struct
@@ -60,6 +81,10 @@ impl Chessboard {
         }
     }
 
+    pub fn at(&self, square: Square) -> Option<(Color, Piece)> {
+        self.position.board.at(square)
+    }
+
     pub fn legal_moves(&self) -> Vec<Move> {
         self.position.legal_moves()
     }
@@ -71,7 +96,7 @@ impl Chessboard {
         }
     }
 
-    pub fn piece_at(&self, square: Square) -> Option<Piece> {
+    pub fn piece_at(&self, square: Square) -> Option<(Color,Piece)> {
         self.position.board.at(square)
     }
 
@@ -79,6 +104,38 @@ impl Chessboard {
         let legal_moves = self.legal_moves();
 
         legal_moves.contains(&mov)
+    }
+
+    pub fn history(&self) -> HistoryIterator {
+        HistoryIterator {
+            board: Some(&self)
+        }
+    }
+
+    pub fn game_result(&self) -> Option<Option<Color>> {
+
+        let legal_moves = self.legal_moves();
+        if legal_moves.len() == 0 {
+            match self.position.in_check() {
+                true => return Some(Some(self.position.turn.other())),
+                false => return Some(None)
+            }
+        }
+        
+        if self.position.half_moves >= 100 {
+            return Some(None)
+        }
+
+        use std::collections::HashMap;
+        let mut frequency: HashMap<Position, u32> = HashMap::new();
+        for pos in self.history() {
+            *frequency.entry(pos).or_insert(0) += 1;
+            if frequency[&pos] == 3 {
+                return Some(None);
+            }
+        }
+        
+        None
     }
     
     pub fn make_str_move(&self, mov: &str) -> Result<Chessboard, ChessError> {
@@ -119,7 +176,7 @@ impl Chessboard {
 
         let piece = match self.piece_at(src) {
             None => return Err(ChessError::ParseMove(mov.to_owned())),
-            Some(piece) => piece,
+            Some((_,piece)) => piece,
         };
 
         if let Some(sq) = self.position.en_passant {
