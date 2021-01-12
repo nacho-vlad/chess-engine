@@ -25,7 +25,7 @@ class AI(Player):
 
         self.engine.stdin.write(position)
         
-        self.engine.stdin.write("go depth 3\n")
+        self.engine.stdin.write("go depth 6\n")
         
         while True:
             line=self.engine.stdout.readline().split()

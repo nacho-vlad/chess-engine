@@ -126,12 +126,13 @@ impl Chessboard {
             return Some(None)
         }
 
-        use std::collections::HashMap;
-        let mut frequency: HashMap<Position, u32> = HashMap::new();
+        let mut count = 0;
         for pos in self.history() {
-            *frequency.entry(pos).or_insert(0) += 1;
-            if frequency[&pos] == 3 {
-                return Some(None);
+            if pos == self.position {
+                count += 1;
+            }
+            if count >= 3 {
+                return Some(None)
             }
         }
         

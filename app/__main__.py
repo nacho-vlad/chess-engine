@@ -7,9 +7,9 @@ from app.ui.gui import GUI
 def main():
 
     ui = GUI()
-    white = AI("./stockfish/stockfish")
-    black = AI("./stockfish/stockfish")
-    # white = Human(ui)
+    # white = AI("./stockfish/stockfish")
+    black = AI("./target/release/engine")
+    white = Human(ui)
     # black = Human(ui)
 
     game = Game(white, black, ui)

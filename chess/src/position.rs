@@ -10,7 +10,7 @@ use crate::ChessError;
 type Board = Colored<Pieces>;
 
 
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, Eq)]
 pub struct Position {
     pub board: Board, 
     pub turn: Color,
@@ -19,6 +19,14 @@ pub struct Position {
     pub half_moves: u16,
 }
 
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.board == other.board &&
+        self.turn == other.turn &&
+        self.castling_rights == other.castling_rights &&
+        self.en_passant == other.en_passant
+    }
+}
 
 fn intersects(lhs: Bitboard, rhs: Bitboard) -> bool {
     lhs & rhs != Bitboard::empty()
@@ -441,13 +449,16 @@ impl Position {
         let player = position.turn;
         let opponent = player.other();
         position.en_passant = None;
-
+        let mut reset_moves = false;
 
         match legal_move {
             Move::Normal(src,dst,piece) => {
                 position.board[player][piece].unset(src);
                 position.board[player][piece].set(dst);
-                position.board[opponent].unset(dst);
+                if let Some(piece) = position.board[opponent].at(dst) {
+                    position.board[opponent][piece].unset(dst);
+                    reset_moves = true;
+                }
                 if piece == Piece::Rook {
                     if src == Square::A1 || src == Square::A8 {
                         position.castling_rights[player].queenside = false; 
@@ -462,18 +473,22 @@ impl Position {
                 }
                 if piece == Piece::Pawn && (src.rank() as i8 - dst.rank() as i8).abs() > 1 {
                     position.en_passant = Some(src + Direction::pawn(player));
+                    reset_moves = true;
                 }
             },
             Move::EnPassant(src,dst) => {
                 position.board[player][Piece::Pawn].unset(src);
                 position.board[player][Piece::Pawn].set(dst);
                 position.board[opponent].unset(dst + Direction::pawn(opponent));
-
+                reset_moves = true;
             },
             Move::Promotion(src,dst,to) => {
                 position.board[player][Piece::Pawn].unset(src);
                 position.board[player][to].set(dst);
-                position.board[opponent].unset(dst); 
+                if let Some(piece) = position.board[opponent].at(dst) {
+                    position.board[opponent][piece].unset(dst);
+                    reset_moves = true;
+                }
             },
             Move::KingsideCastle => {
                 let (old_king, old_rook, new_king, new_rook) = match player {
@@ -527,7 +542,11 @@ impl Position {
         }
 
         position.turn = opponent;
-        position.half_moves += 1;
+        if reset_moves {
+            position.half_moves = 0;
+        } else {
+            position.half_moves +=1;
+        }
         position
     }
 

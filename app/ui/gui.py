@@ -82,7 +82,9 @@ class GUI(UI):
                     left_click = e.button == 1
                     
                     if self.selected is not None and left_click:
-                        return square(*self.selected) + square(*from_coords(mouseX,mouseY)) 
+                        selected = self.selected
+                        self.selected = None
+                        return square(*selected) + square(*from_coords(mouseX,mouseY)) 
 
                     self.selected = from_coords(mouseX,mouseY) if left_click else None
 
@@ -96,7 +98,7 @@ class GUI(UI):
 
 
     def game_over(self, result):
-        
+
         while True:
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
