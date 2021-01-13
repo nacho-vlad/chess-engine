@@ -2,7 +2,7 @@ import abc
 
 class Player(abc.ABC):
     """Class that represents a player of the game,
-    can either be human or AI.
+    can be either human or AI.
     """
     @abc.abstractmethod
     def get_move(moves):

@@ -52,6 +52,7 @@ class GUI(UI):
                     name += 'd'
                 name = './images/Chess_' + name + 't60.png'
                 piece_img = pygame.image.load(name)
+                # piece_img = pygame.transform.scale(piece_img, (80,80))
                 coords = to_coords(file,rank)
                 self.screen.blit(piece_img, (coords[0] + 10, coords[1] + 10))
 

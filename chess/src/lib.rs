@@ -111,6 +111,8 @@ impl Chessboard {
             board: Some(&self)
         }
     }
+    
+    
 
     pub fn game_result(&self) -> Option<Option<Color>> {
 

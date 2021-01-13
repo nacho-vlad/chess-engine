@@ -3,14 +3,29 @@ from app.player.human import Human
 from app.player.ai import AI
 from app.ui.cli import CLI
 from app.ui.gui import GUI
+import yaml
 
 def main():
+    settings = yaml.load(open("config.yaml"))
+    
+    ui = {
+            'gui': lambda: GUI(),
+            'cli': lambda: CLI(),
+        }[settings['ui']]()
+    
+    
+    white = None
+    if settings['white']['type'] == 'human':
+        white = Human(ui)
+    elif settings['white']['type'] == 'ai':
+        white = AI(settings['white']['path'])
+    
+    black = None
+    if settings['black']['type'] == 'human':
+        black = Human(ui)
+    elif settings['black']['type'] == 'ai':
+        black = AI(settings['black']['path'])
 
-    ui = GUI()
-    # white = AI("./stockfish/stockfish")
-    black = AI("./target/release/engine")
-    white = Human(ui)
-    # black = Human(ui)
 
     game = Game(white, black, ui)
     game.play()

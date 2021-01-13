@@ -1,0 +1,9 @@
+ui: "cli"
+
+white: 
+    type: human
+
+black:
+    type: ai
+    path: "./target/release/engine"
+    depth: 6
