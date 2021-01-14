@@ -84,6 +84,28 @@ impl Board {
     pub fn unoccupied(&self) -> Bitboard { 
         self[Color::White].unoccupied() | self[Color::Black].unoccupied()
     }
+    
+    pub fn attacks(&self, color: Color) -> Bitboard {
+        let occupied = self.occupied();
+        let mut attacked = Bitboard::empty();
+
+        for knight in self[color][Piece::Knight].squares() {
+            attacked = attacked | knight_attack(knight);
+        }
+        for bishop in self[color][Piece::Bishop].squares() {
+            attacked = attacked | bishop_attack(occupied, bishop);
+        }
+        for rook in self[color][Piece::Rook].squares() {
+            attacked = attacked | rook_attack(occupied, rook);
+        }
+        for queen in self[color][Piece::Queen].squares() {
+            attacked = attacked | queen_attack(occupied, queen);
+        }
+        for pawn in self[color][Piece::Pawn].squares() {
+            attacked = attacked | pawn_attack(color, pawn);
+        }
+        attacked
+    }
 
     pub fn in_check(&self, player: Color) -> bool {
         let opponent = player.other();

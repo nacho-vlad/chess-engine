@@ -1,4 +1,4 @@
-ui: "cli"
+ui: "gui"
 
 white: 
     type: human

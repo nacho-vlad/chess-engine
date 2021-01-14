@@ -1,35 +1,15 @@
 pub mod uci;
+pub mod evaluation;
 
+use evaluation::*;
 use chess::*;
-use chess::repr::{Move, Piece};
+use chess::repr::Move;
 use rayon::prelude::*;
 use std::sync::{
     Arc,
     Mutex,
 };
 
-const MIN_SCORE: f64 = -10000.0;
-const MAX_SCORE: f64 = 10000.0;
-
-fn evaluate(chessboard: &Chessboard) -> f64 {
-     let player = chessboard.position.turn;
-     let opponent = player.other();
-     let board = chessboard.position.board;
-    
-     let mut score: f64 = 0.0;
-     score += 1.0 * (board[player][Piece::Pawn].count() as f64
-                    -board[opponent][Piece::Pawn].count() as f64);
-     score += 3.0 * (board[player][Piece::Bishop].count() as f64
-                    -board[opponent][Piece::Bishop].count() as f64);
-     score += 3.0 * (board[player][Piece::Knight].count() as f64
-                    -board[opponent][Piece::Knight].count() as f64);
-     score += 5.0 * (board[player][Piece::Rook].count() as f64
-                    -board[opponent][Piece::Rook].count() as f64);
-     score += 9.0 * (board[player][Piece::Queen].count() as f64
-                    -board[opponent][Piece::Queen].count() as f64);
-
-     score
-}
 
 // fn negamax(position: &Chessboard, should_stop: Arc<AtomicBool>, alpha: f64, beta: f64, depth: u32) ->  f64 {
     

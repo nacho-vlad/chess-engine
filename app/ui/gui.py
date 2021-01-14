@@ -72,7 +72,7 @@ class GUI(UI):
 
         pygame.display.flip()
 
-    def get_move(self):
+    def get_move(self, moves):
         
         self.selected = None
         while True:
